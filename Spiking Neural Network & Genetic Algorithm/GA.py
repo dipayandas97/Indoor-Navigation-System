@@ -4,17 +4,27 @@ class GA:
     def __init__(self):
         pass
 
-    def matrix_to_vector(self, matrices): #returns list(matrix) of vectors for list(matrix) of 3D matrices
-        if len(matrices.shape) != 4:
-            raise Exception('Input should be 4D matrices (array of 3D matrices)')
-        vectors = [m.flatten() for m in matrices]
+    def matrix_to_vector(self, matrices): #input list of matrices (for a single model)
+        vectors = np.concatenate([m.flatten() for m in matrices])
         return np.asarray(vectors)
 
-    def vector_to_matrix(self, vectors, matrices_dim):
-        if len(matrices_dim) != 4:
-            raise Exception('Input matrix should be 4D matrices (array of 3D matrices)')
-        new_matrices = [v.reshape(matrices_dim[1], matrices_dim[2], matrices_dim[3]) for v in vectors]
-        return np.asarray(new_matrices)
+    def vector_to_matrix(vector, dummy_matrices): #vector shaped: (L,) (for a single model)
+        synapse_list = []
+        
+        lens = []
+        for s in dummy_matrices:
+            lens.append(s.shape[0] * s.shape[1])
+        if np.sum(lens) != vector.shape[0]:
+            raise Exception('Cant reshape vector of shape',vector.shape,'to matrices having elements:,',lens)
+
+        for l in range(len(dummy_matrices)):
+            start_id = int(np.sum(lens[:l]))
+            end_id = int(np.sum(lens[:l+1]))
+            s = vector[start_id:end_id]
+            synapse = s.reshape(dummy_matrices[l].shape[0], dummy_matrices[l].shape[1])
+            synapse_list.append(synapse)
+        
+        return synapse_list
 
     def select_mating_pool(self, population, fitness, num_parents, mode='min'): 
         parents = np.zeros((num_parents, population.shape[1]))
